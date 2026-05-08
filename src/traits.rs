@@ -22,9 +22,32 @@ pub enum IngestionError {
     InternalError(Cow<'static, str>),
 }
 
-pub struct Dataset<T> {
+
+#[derive(Clone)]
+pub struct Dataset<T> where T: Clone {
     name: String,
     data: T,
+}
+
+pub enum DatasetDto {
+    DataFrame(Dataset<DataFrame>),
+    None,
+}
+
+impl DatasetDto {
+    pub fn get_name(&self) -> Option<&str> {
+        match self {
+            DatasetDto::DataFrame(dataset) => Some(dataset.get_name()),
+            DatasetDto::None => None,
+        }
+    }
+
+    pub fn get_as_dataframe(&self) -> Option<DataFrame> {
+        match self {
+            DatasetDto::DataFrame(dataset) => Some(dataset.get_data()),
+            DatasetDto::None => None,
+        }
+    }
 }
 
 #[async_trait]
@@ -97,12 +120,25 @@ impl FileStorer for Dataset<DataFrame> {
     }
 }
 
+
+
+
 #[async_trait]
 impl FileStorer for Option<Dataset<DataFrame>> {
     async fn write_file(&self, file_path: &str) -> Result<(), StorageError> {
         match self {
             Some(dataset) => dataset.write_file(file_path).await,
             None => Ok(()),
+        }
+    }
+}
+
+#[async_trait]
+impl FileStorer for DatasetDto {
+    async fn write_file(&self, file_path: &str) -> Result<(), StorageError> {
+        match self {
+            DatasetDto::DataFrame(dataset) => dataset.write_file(file_path).await,
+            DatasetDto::None => Ok(()),
         }
     }
 }

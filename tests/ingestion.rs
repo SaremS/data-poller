@@ -89,13 +89,13 @@ async fn test_ingest_remote_parquet_success() {
     let dataset = ingestor
         .ingest()
         .await
-        .expect("Ingest failed")
-        .expect("Expected dataframe");
+        .expect("Ingest failed");
 
-    assert_eq!(dataset.get_name(), "second.parquet");
+    assert_eq!(dataset.get_name().unwrap(), "second.parquet");
 
     let results = dataset
-        .get_data()
+        .get_as_dataframe()
+        .expect("Failed to get DataFrame")
         .collect()
         .await
         .expect("Failed to collect batches");

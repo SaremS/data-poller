@@ -10,7 +10,7 @@ use thiserror::Error;
 use url::Url;
 use serde::Deserialize;
 
-use crate::traits::{Dataset, IngestionError, Ingestor};
+use crate::traits::{Dataset, IngestionError, Ingestor, DatasetDto};
 use crate::config::IngestorConfig;
 
 pub struct HtmlListDataFusionIngestor {
@@ -61,8 +61,8 @@ impl HtmlListDataFusionIngestor {
 }
 
 #[async_trait]
-impl Ingestor<Option<Dataset<DataFrame>>> for HtmlListDataFusionIngestor {
-    async fn ingest(&self) -> Result<Option<Dataset<DataFrame>>, IngestionError> {
+impl Ingestor<DatasetDto> for HtmlListDataFusionIngestor {
+    async fn ingest(&self) -> Result<DatasetDto, IngestionError> {
         let mut links = self
             .extractor
             .extract_from_url(&self.target_url)
@@ -70,7 +70,7 @@ impl Ingestor<Option<Dataset<DataFrame>>> for HtmlListDataFusionIngestor {
             .map_err(|_| IngestionError::ExtractError("Could not extract from url".into()))?;
 
         if links.is_empty() {
-            return Ok(None);
+            return Ok(DatasetDto::None);
         }
 
         if self.ingest_from_back {
@@ -93,7 +93,7 @@ impl Ingestor<Option<Dataset<DataFrame>>> for HtmlListDataFusionIngestor {
 
             match links.get(target_index) {
                 Some(l) => l.clone(),
-                None => return Ok(None),
+                None => return Ok(DatasetDto::None),
             }
         };
 
@@ -117,7 +117,7 @@ impl Ingestor<Option<Dataset<DataFrame>>> for HtmlListDataFusionIngestor {
 
         let result = Dataset::new(&dataset_name, result);
 
-        Ok(Some(result))
+        Ok(DatasetDto::DataFrame(result))
     }
 }
 
