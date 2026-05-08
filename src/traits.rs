@@ -1,6 +1,13 @@
 use std::borrow::Cow;
 
 use async_trait::async_trait;
+use datafusion::{
+    dataframe::{DataFrame, DataFrameWriteOptions},
+    logical_expr::Partitioning,
+    prelude::*,
+};
+use std::fs;
+use std::path::Path;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -18,6 +25,11 @@ pub enum IngestionError {
 pub struct Dataset<T> {
     name: String,
     data: T,
+}
+
+#[async_trait]
+pub trait FileStorer {
+    async fn write_file(&self, file_path: &str) -> Result<(), StorageError>;
 }
 
 impl<T> Dataset<T>
@@ -41,6 +53,51 @@ where
 }
 
 #[async_trait]
+impl FileStorer for Dataset<DataFrame> {
+    async fn write_file(&self, file_path: &str) -> Result<(), StorageError> {
+        let path = Path::new(file_path);
+
+        if !path.exists() {
+            fs::create_dir_all(path).map_err(|e| {
+                StorageError::StorageUnavailable(
+                    format!("Failed to create directory: {}", e).into(),
+                )
+            })?;
+        }
+
+        let filename = self.get_name();
+
+        let filename_without_extension = filename
+            .rsplit_once('.')
+            .map(|(name, _)| name)
+            .unwrap_or(filename);
+
+        let full_parquet_path = format!("{}/{}.parquet", file_path, filename_without_extension);
+
+        let df = self.get_data();
+        let df_r = df
+            .repartition(Partitioning::RoundRobinBatch(1))
+            .map_err(|e| {
+                StorageError::StorageUnavailable(
+                    format!("Failed to repartition DataFrame: {}", e).into(),
+                )
+            })?;
+
+        let options = DataFrameWriteOptions::new().with_single_file_output(true);
+
+        df_r.write_parquet(&full_parquet_path, options, None)
+            .await
+            .map_err(|e| {
+                StorageError::StorageUnavailable(
+                    format!("Failed to write Parquet file: {}", e).into(),
+                )
+            })?;
+
+        Ok(())
+    }
+}
+
+#[async_trait]
 pub trait Ingestor<T>: Send + Sync {
     async fn ingest(&self) -> Result<T, IngestionError>;
 }
@@ -58,8 +115,10 @@ pub trait Transformer<T, S>: Send + Sync {
 
 #[derive(Error, Debug)]
 pub enum StorageError {
-    #[error("Failed to store data: {0}")]
+    #[error("Storage unavailable: {0}")]
     StorageUnavailable(Cow<'static, str>),
+    #[error("Failed to write data: {0}")]
+    WriteError(Cow<'static, str>),
 }
 
 #[async_trait]

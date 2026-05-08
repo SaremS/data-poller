@@ -6,8 +6,8 @@ use axum::{
     Router,
     routing::{get, get_service},
 };
-use data_poller_rs::ingestion::HtmlListDataFusionIngestor;
-use data_poller_rs::traits::{IngestionError, Ingestor};
+use data_poller::ingestion::HtmlListDataFusionIngestor;
+use data_poller::traits::{IngestionError, Ingestor};
 use parquet::arrow::arrow_writer::ArrowWriter;
 use tempfile::NamedTempFile;
 use tokio::net::TcpListener;
