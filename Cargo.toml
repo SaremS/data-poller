@@ -1,0 +1,21 @@
+[package]
+name = "data-poller-rs"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+async-trait = "0.1.89"
+datafusion = "53.1.0"
+object_store = { version = "0.13.2", features = ["http"] }
+reqwest = "0.13.3"
+scraper = "0.26.0"
+thiserror = "2.0.18"
+tokio = { version = "1.52.2", features = ["full"] }
+url = "2.5.8"
+
+[dev-dependencies]
+arrow = "58.2.0"
+axum = "0.7"
+parquet = { version = "58.2.0", features = ["arrow"] }
+tempfile = "3.27.0"
+tower-http = { version = "0.6.10", features = ["fs"] }
