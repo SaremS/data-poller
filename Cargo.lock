@@ -816,6 +816,7 @@ dependencies = [
  "parquet",
  "reqwest 0.13.3",
  "scraper",
+ "serde",
  "tempfile",
  "thiserror",
  "tokio",

@@ -9,11 +9,8 @@ use axum::{
     routing::{get, get_service},
 };
 use data_poller::{
-    ingestion::HtmlListDataFusionIngestor,
-    orchestration::Orchestrator,
-    storage::FilePathStorer,
-    traits::Pipeline,
-    transformation::IdentityTransformer,
+    ingestion::HtmlListDataFusionIngestor, orchestration::Orchestrator, storage::FilePathStorer,
+    traits::Pipeline, transformation::IdentityTransformer,
 };
 use datafusion::prelude::*;
 use parquet::arrow::arrow_writer::ArrowWriter;
@@ -59,7 +56,9 @@ async fn read_names_from_parquet(file_path: &str) -> Vec<String> {
         .downcast_ref::<StringViewArray>()
         .unwrap();
 
-    (0..column.len()).map(|index| column.value(index).to_string()).collect()
+    (0..column.len())
+        .map(|index| column.value(index).to_string())
+        .collect()
 }
 
 #[tokio::test]

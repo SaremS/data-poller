@@ -8,8 +8,10 @@ use reqwest;
 use scraper::{Html, Selector};
 use thiserror::Error;
 use url::Url;
+use serde::Deserialize;
 
 use crate::traits::{Dataset, IngestionError, Ingestor};
+use crate::config::IngestorConfig;
 
 pub struct HtmlListDataFusionIngestor {
     extractor: HtmlExtractor,
