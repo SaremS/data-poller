@@ -21,13 +21,13 @@ pub enum DatasetIngestorConfig {
 }
 
 #[derive(Error, Debug)]
-pub enum IngestorConfigError {
+pub enum ConfigError {
     #[error("Failed to create ingestor: {0}")]
     CreationError(Cow<'static, str>),
 }
 
 impl DatasetIngestorConfig {
-    pub fn to_ingestor(&self) -> Result<Box<dyn Ingestor<DatasetDto>>, IngestorConfigError>
+    pub fn to_ingestor(&self) -> Result<Box<dyn Ingestor<DatasetDto>>, ConfigError>
     where
         HtmlListDataFusionIngestor: Ingestor<DatasetDto>,
     {
@@ -47,9 +47,7 @@ impl DatasetIngestorConfig {
                     Some(*ingest_from_back),
                 )
                 .map_err(|e| {
-                    IngestorConfigError::CreationError(
-                        format!("Failed to create ingestor: {}", e).into(),
-                    )
+                    ConfigError::CreationError(format!("Failed to create ingestor: {}", e).into())
                 })?,
             )),
         }
@@ -62,9 +60,11 @@ pub enum DatasetTransformerConfig {
 }
 
 impl DatasetTransformerConfig {
-    pub fn to_transformer(&self) -> Box<dyn crate::traits::Transformer<DatasetDto, DatasetDto>> {
+    pub fn to_transformer(
+        &self,
+    ) -> Result<Box<dyn Transformer<DatasetDto, DatasetDto>>, ConfigError> {
         match self {
-            DatasetTransformerConfig::Identity => Box::new(IdentityTransformer),
+            DatasetTransformerConfig::Identity => Ok(Box::new(IdentityTransformer)),
         }
     }
 }
@@ -76,11 +76,11 @@ pub enum DatasetStorerConfig {
 }
 
 impl DatasetStorerConfig {
-    pub fn to_storer(&self) -> Box<dyn Storer<DatasetDto>> {
+    pub fn to_storer(&self) -> Result<Box<dyn Storer<DatasetDto>>, ConfigError> {
         match self {
-            DatasetStorerConfig::Console => Box::new(ConsoleStorer::new()),
+            DatasetStorerConfig::Console => Ok(Box::new(ConsoleStorer::new())),
             DatasetStorerConfig::FilePath { file_path } => {
-                Box::new(FilePathStorer::new(file_path.to_string()))
+                Ok(Box::new(FilePathStorer::new(file_path.to_string())))
             }
         }
     }
@@ -102,5 +102,21 @@ mod tests {
 
         let ingestor = config.to_ingestor();
         assert!(ingestor.is_ok());
+    }
+
+    #[test]
+    fn test_transformer_config_to_transformer() {
+        let config = DatasetTransformerConfig::Identity;
+        let transformer = config.to_transformer();
+        assert!(transformer.is_ok());
+    }
+
+    #[test]
+    fn test_storer_config_to_storer() {
+        let file_config = DatasetStorerConfig::FilePath {
+            file_path: "output.txt".into(),
+        };
+        let file_storer = file_config.to_storer();
+        assert!(file_storer.is_ok());
     }
 }
