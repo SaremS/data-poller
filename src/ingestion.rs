@@ -217,6 +217,12 @@ impl DataFusionLoader {
             .runtime_env()
             .register_object_store(&file_url, Arc::new(http_store));
 
+        context.deregister_table("remote_parquet").map_err(|e| {
+            DataFusionLoaderError::ConnectionError(
+                format!("Failed to reset Parquet registration: {}", e).into(),
+            )
+        })?;
+
         context
             .register_parquet("remote_parquet", file_url, ParquetReadOptions::default())
             .await

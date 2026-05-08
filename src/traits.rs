@@ -98,6 +98,16 @@ impl FileStorer for Dataset<DataFrame> {
 }
 
 #[async_trait]
+impl FileStorer for Option<Dataset<DataFrame>> {
+    async fn write_file(&self, file_path: &str) -> Result<(), StorageError> {
+        match self {
+            Some(dataset) => dataset.write_file(file_path).await,
+            None => Ok(()),
+        }
+    }
+}
+
+#[async_trait]
 pub trait Ingestor<T>: Send + Sync {
     async fn ingest(&self) -> Result<T, IngestionError>;
 }
