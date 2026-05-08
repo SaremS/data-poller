@@ -6,12 +6,11 @@ use datafusion::{dataframe::DataFrame, prelude::*};
 use object_store::{ClientOptions, http::HttpBuilder};
 use reqwest;
 use scraper::{Html, Selector};
+use serde::Deserialize;
 use thiserror::Error;
 use url::Url;
-use serde::Deserialize;
 
-use crate::traits::{Dataset, IngestionError, Ingestor, DatasetDto};
-use crate::config::IngestorConfig;
+use crate::traits::{Dataset, DatasetDto, IngestionError, Ingestor};
 
 pub struct HtmlListDataFusionIngestor {
     extractor: HtmlExtractor,

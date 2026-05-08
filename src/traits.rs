@@ -22,9 +22,11 @@ pub enum IngestionError {
     InternalError(Cow<'static, str>),
 }
 
-
 #[derive(Clone)]
-pub struct Dataset<T> where T: Clone {
+pub struct Dataset<T>
+where
+    T: Clone,
+{
     name: String,
     data: T,
 }
@@ -119,9 +121,6 @@ impl FileStorer for Dataset<DataFrame> {
         Ok(())
     }
 }
-
-
-
 
 #[async_trait]
 impl FileStorer for Option<Dataset<DataFrame>> {

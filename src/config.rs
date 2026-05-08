@@ -4,10 +4,10 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::ingestion::HtmlListDataFusionIngestor;
-use crate::traits::Ingestor;
+use crate::traits::{DatasetDto, Ingestor};
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum IngestorConfig {
+pub enum DatasetIngestorConfig {
     HtmlListDataFusion {
         tree_path: Cow<'static, str>,
         sub_path: Cow<'static, str>,
@@ -23,13 +23,13 @@ pub enum IngestorConfigError {
     CreationError(Cow<'static, str>),
 }
 
-impl IngestorConfig {
-    pub fn to_ingestor<T>(&self) -> Result<Box<dyn Ingestor<T>>, IngestorConfigError>
+impl DatasetIngestorConfig {
+    pub fn to_ingestor(&self) -> Result<Box<dyn Ingestor<DatasetDto>>, IngestorConfigError>
     where
-        HtmlListDataFusionIngestor: Ingestor<T>,
+        HtmlListDataFusionIngestor: Ingestor<DatasetDto>,
     {
         match self {
-            IngestorConfig::HtmlListDataFusion {
+            DatasetIngestorConfig::HtmlListDataFusion {
                 tree_path,
                 sub_path,
                 target_url,
@@ -53,14 +53,13 @@ impl IngestorConfig {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_ingestor_config_to_ingestor() {
-        let config = IngestorConfig::HtmlListDataFusion {
+        let config = DatasetIngestorConfig::HtmlListDataFusion {
             tree_path: "tree".into(),
             sub_path: "sub".into(),
             target_url: "http://example.com".into(),
@@ -68,5 +67,7 @@ mod tests {
             ingest_from_back: true,
         };
 
+        let ingestor = config.to_ingestor();
+        assert!(ingestor.is_ok());
     }
 }

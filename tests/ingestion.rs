@@ -86,10 +86,7 @@ async fn test_ingest_remote_parquet_success() {
     )
     .expect("Failed to create ingestor");
 
-    let dataset = ingestor
-        .ingest()
-        .await
-        .expect("Ingest failed");
+    let dataset = ingestor.ingest().await.expect("Ingest failed");
 
     assert_eq!(dataset.get_name().unwrap(), "second.parquet");
 
