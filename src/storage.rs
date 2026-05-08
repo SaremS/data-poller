@@ -4,6 +4,12 @@ use crate::traits::{FileStorer, StorageError, Storer};
 
 pub struct ConsoleStorer;
 
+impl ConsoleStorer {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
 #[async_trait]
 impl<T> Storer<T> for ConsoleStorer
 where

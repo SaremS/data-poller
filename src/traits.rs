@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::fmt::Debug;
 
 use async_trait::async_trait;
 use datafusion::{
@@ -22,7 +23,7 @@ pub enum IngestionError {
     InternalError(Cow<'static, str>),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Dataset<T>
 where
     T: Clone,
@@ -31,6 +32,7 @@ where
     data: T,
 }
 
+#[derive(Clone, Debug)]
 pub enum DatasetDto {
     DataFrame(Dataset<DataFrame>),
     None,
@@ -49,6 +51,12 @@ impl DatasetDto {
             DatasetDto::DataFrame(dataset) => Some(dataset.get_data()),
             DatasetDto::None => None,
         }
+    }
+}
+
+impl From<DatasetDto> for String {
+    fn from(dto: DatasetDto) -> Self {
+        format!("{:#?}", dto)
     }
 }
 

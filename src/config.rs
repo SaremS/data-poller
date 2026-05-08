@@ -4,7 +4,10 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::ingestion::HtmlListDataFusionIngestor;
-use crate::traits::{DatasetDto, Ingestor};
+use crate::storage::{ConsoleStorer, FilePathStorer};
+use crate::transformation::IdentityTransformer;
+
+use crate::traits::{DatasetDto, Ingestor, Storer, Transformer};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum DatasetIngestorConfig {
@@ -49,6 +52,36 @@ impl DatasetIngestorConfig {
                     )
                 })?,
             )),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum DatasetTransformerConfig {
+    Identity,
+}
+
+impl DatasetTransformerConfig {
+    pub fn to_transformer(&self) -> Box<dyn crate::traits::Transformer<DatasetDto, DatasetDto>> {
+        match self {
+            DatasetTransformerConfig::Identity => Box::new(IdentityTransformer),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum DatasetStorerConfig {
+    Console,
+    FilePath { file_path: Cow<'static, str> },
+}
+
+impl DatasetStorerConfig {
+    pub fn to_storer(&self) -> Box<dyn Storer<DatasetDto>> {
+        match self {
+            DatasetStorerConfig::Console => Box::new(ConsoleStorer::new()),
+            DatasetStorerConfig::FilePath { file_path } => {
+                Box::new(FilePathStorer::new(file_path.to_string()))
+            }
         }
     }
 }
