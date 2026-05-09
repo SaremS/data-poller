@@ -18,6 +18,12 @@ impl PipelineSchedule {
             PipelineSchedule::FixedMsInterval(ms) => Duration::from_millis(*ms),
         }
     }
+
+    pub fn is_valid_duration(&self) -> bool {
+        match self {
+            PipelineSchedule::FixedMsInterval(ms) => *ms > 0,
+        }
+    }
 }
 
 impl From<Duration> for PipelineSchedule {
@@ -44,7 +50,7 @@ impl ScheduledPipeline {
         pipeline: Box<dyn RunnablePipeline>,
         schedule: PipelineSchedule,
     ) -> Result<Self, ScheduledPipelineError> {
-        if schedule.to_duration().is_zero() {
+        if !schedule.is_valid_duration() {
             return Err(ScheduledPipelineError::CreationError(
                 "Schedule must be greater than zero".into(),
             ));
