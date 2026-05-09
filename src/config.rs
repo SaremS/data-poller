@@ -7,9 +7,26 @@ use crate::ingestion::HtmlListDataFusionIngestor;
 use crate::storage::{ConsoleStorer, FilePathStorer};
 use crate::transformation::IdentityTransformer;
 
-use crate::traits::{DatasetDto, Ingestor, Storer, Transformer};
+use crate::traits::{DatasetDto, Ingestor, Pipeline, Storer, Transformer};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub struct DatasetPipelineConfig {
+    pub ingestor: DatasetIngestorConfig,
+    pub transformer: DatasetTransformerConfig,
+    pub storer: DatasetStorerConfig,
+}
+
+impl DatasetPipelineConfig {
+    pub fn to_pipeline(&self) -> Result<Pipeline<DatasetDto, DatasetDto>, ConfigError> {
+        let ingestor = self.ingestor.to_ingestor()?;
+        let transformer = self.transformer.to_transformer()?;
+        let storer = self.storer.to_storer()?;
+
+        Ok(Pipeline::new(ingestor, transformer, storer))
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum DatasetIngestorConfig {
     HtmlListDataFusion {
         tree_path: Cow<'static, str>,
@@ -54,7 +71,7 @@ impl DatasetIngestorConfig {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum DatasetTransformerConfig {
     Identity,
 }
@@ -69,7 +86,7 @@ impl DatasetTransformerConfig {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum DatasetStorerConfig {
     Console,
     FilePath { file_path: Cow<'static, str> },
@@ -89,6 +106,51 @@ impl DatasetStorerConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_pipeline_config_to_pipeline() {
+        let config = DatasetPipelineConfig {
+            ingestor: DatasetIngestorConfig::HtmlListDataFusion {
+                tree_path: "tree".into(),
+                sub_path: "sub".into(),
+                target_url: "http://example.com".into(),
+                query: "SELECT *".into(),
+                ingest_from_back: true,
+            },
+            transformer: DatasetTransformerConfig::Identity,
+            storer: DatasetStorerConfig::Console,
+        };
+        let pipeline = config.to_pipeline();
+        assert!(pipeline.is_ok());
+    }
+
+    #[test]
+    fn test_pipeline_yaml_deserialization() {
+        let yaml = indoc::indoc!{r#"
+        ingestor: 
+            !HtmlListDataFusion
+              tree_path: "tree"
+              sub_path: "sub"
+              target_url: "http://example.com"
+              query: "SELECT *"
+              ingest_from_back: true
+        transformer: !Identity
+        storer: !Console
+        "#};
+        let config: DatasetPipelineConfig = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(
+            config.ingestor,
+            DatasetIngestorConfig::HtmlListDataFusion {
+                tree_path: "tree".into(),
+                sub_path: "sub".into(),
+                target_url: "http://example.com".into(),
+                query: "SELECT *".into(),
+                ingest_from_back: true,
+            }
+        );
+        assert_eq!(config.transformer, DatasetTransformerConfig::Identity);
+        assert_eq!(config.storer, DatasetStorerConfig::Console);
+    }
 
     #[test]
     fn test_ingestor_config_to_ingestor() {
