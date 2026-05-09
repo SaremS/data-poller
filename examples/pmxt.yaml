@@ -1,0 +1,16 @@
+# Run with:
+# cargo run -p data-poller-cli -- examples/pmxt.yaml
+#
+pipelines:
+  - name: "pmxt-dataset-poller"
+    pipeline: !Dataset
+      ingestor: !HtmlListDataFusion
+        tree_path: "pre > span"
+        sub_path: "a"
+        target_url: "https://archive.pmxt.dev/Polymarket/v2"
+        query: "SELECT * FROM remote_parquet LIMIT 5"
+        ingest_from_back: true
+      transformer: !Identity
+      storer: !FilePath
+        file_path: "/tmp/"  
+    schedule: !FixedMsInterval 2000
