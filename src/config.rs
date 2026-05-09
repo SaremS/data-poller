@@ -7,13 +7,63 @@ use crate::ingestion::HtmlListDataFusionIngestor;
 use crate::storage::{ConsoleStorer, FilePathStorer};
 use crate::transformation::IdentityTransformer;
 
-use crate::traits::{DatasetDto, Ingestor, Pipeline, Storer, Transformer};
+use crate::orchestration::{Orchestrator, PipelineSchedule, ScheduledPipeline};
+use crate::traits::{DatasetDto, Ingestor, Pipeline, RunnablePipeline, Storer, Transformer};
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub struct OrchestratorConfig {
+    pub pipelines: Vec<ScheduledPipelineConfig>,
+}
+
+impl OrchestratorConfig {
+    pub fn to_orchestrator(&self) -> Result<Orchestrator, ConfigError> {
+        let mut orchestrator = Orchestrator::new();
+        for pipeline_config in &self.pipelines {
+            let scheduled_pipeline: ScheduledPipeline = pipeline_config.to_scheduled_pipeline()?;
+            orchestrator.add_scheduled_pipeline(scheduled_pipeline);
+        }
+        Ok(orchestrator)
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub struct ScheduledPipelineConfig {
+    pub name: Cow<'static, str>,
+    pub pipeline: PipelineConfig,
+    pub schedule: PipelineSchedule,
+}
+
+impl ScheduledPipelineConfig {
+    pub fn to_scheduled_pipeline(&self) -> Result<ScheduledPipeline, ConfigError> {
+        let pipeline = self.pipeline.to_pipeline()?;
+        ScheduledPipeline::new(self.name.to_string(), pipeline, self.schedule.clone()).map_err(
+            |e| {
+                ConfigError::CreationError(
+                    format!("Failed to create scheduled pipeline: {}", e).into(),
+                )
+            },
+        )
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct DatasetPipelineConfig {
     pub ingestor: DatasetIngestorConfig,
     pub transformer: DatasetTransformerConfig,
     pub storer: DatasetStorerConfig,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub enum PipelineConfig {
+    Dataset(DatasetPipelineConfig),
+}
+
+impl PipelineConfig {
+    pub fn to_pipeline(&self) -> Result<Box<dyn RunnablePipeline>, ConfigError> {
+        match self {
+            PipelineConfig::Dataset(config) => Ok(Box::new(config.to_pipeline()?)),
+        }
+    }
 }
 
 impl DatasetPipelineConfig {

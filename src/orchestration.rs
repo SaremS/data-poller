@@ -2,12 +2,13 @@ use std::borrow::Cow;
 use std::collections::{HashMap, hash_map::Entry};
 use std::sync::Arc;
 
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tokio::time::{Duration, sleep};
 
 use crate::traits::RunnablePipeline;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PipelineSchedule {
     FixedMsInterval(u64),
 }
@@ -32,7 +33,7 @@ impl From<Duration> for PipelineSchedule {
     }
 }
 
-struct ScheduledPipeline {
+pub struct ScheduledPipeline {
     name: String,
     pipeline: Box<dyn RunnablePipeline>,
     schedule: PipelineSchedule,
@@ -92,6 +93,23 @@ impl Orchestrator {
         schedule: PipelineSchedule,
     ) -> Result<(), OrchestratorError> {
         let scheduled_pipeline = Arc::new(ScheduledPipeline::new(name, pipeline, schedule)?);
+
+        match self.pipelines.entry(scheduled_pipeline.name.clone()) {
+            Entry::Vacant(entry) => {
+                entry.insert(scheduled_pipeline);
+                Ok(())
+            }
+            Entry::Occupied(_) => Err(OrchestratorError::DuplicatePipelineName(
+                scheduled_pipeline.name.clone(),
+            )),
+        }
+    }
+
+    pub fn add_scheduled_pipeline(
+        &mut self,
+        scheduled_pipeline: ScheduledPipeline,
+    ) -> Result<(), OrchestratorError> {
+        let scheduled_pipeline = Arc::new(scheduled_pipeline);
 
         match self.pipelines.entry(scheduled_pipeline.name.clone()) {
             Entry::Vacant(entry) => {
