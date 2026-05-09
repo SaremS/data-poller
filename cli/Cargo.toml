@@ -1,0 +1,10 @@
+[package]
+name = "data-poller-cli"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+data-poller-orchestration = { path = "../orchestration" }
+serde_yaml = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }

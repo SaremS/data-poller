@@ -54,7 +54,6 @@ mod tests {
             datatypes::{DataType, Field, Schema},
             record_batch::RecordBatch,
         },
-        dataframe::DataFrame,
         prelude::*,
     };
 

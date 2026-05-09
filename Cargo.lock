@@ -805,25 +805,51 @@ dependencies = [
 ]
 
 [[package]]
-name = "data-poller"
+name = "data-poller-cli"
+version = "0.1.0"
+dependencies = [
+ "data-poller-orchestration",
+ "serde_yaml",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
+name = "data-poller-core"
 version = "0.1.0"
 dependencies = [
  "arrow",
  "async-trait",
  "axum",
  "datafusion",
- "indoc",
  "object_store",
  "parquet",
  "reqwest 0.13.3",
  "scraper",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "tower-http",
+ "url",
+]
+
+[[package]]
+name = "data-poller-orchestration"
+version = "0.1.0"
+dependencies = [
+ "arrow",
+ "async-trait",
+ "axum",
+ "data-poller-core",
+ "datafusion",
+ "indoc",
+ "parquet",
  "serde",
  "serde_yaml",
  "tempfile",
  "thiserror",
  "tokio",
  "tower-http",
- "url",
 ]
 
 [[package]]

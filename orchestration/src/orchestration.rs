@@ -2,11 +2,10 @@ use std::borrow::Cow;
 use std::collections::{HashMap, hash_map::Entry};
 use std::sync::Arc;
 
+use data_poller_core::traits::RunnablePipeline;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tokio::time::{Duration, sleep};
-
-use crate::traits::RunnablePipeline;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PipelineSchedule {
@@ -79,6 +78,12 @@ pub struct Orchestrator {
     pipelines: HashMap<String, Arc<ScheduledPipeline>>,
 }
 
+impl Default for Orchestrator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Orchestrator {
     pub fn new() -> Self {
         Self {
@@ -141,7 +146,7 @@ impl Orchestrator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::traits::*;
+    use data_poller_core::traits::*;
 
     use async_trait::async_trait;
     use std::sync::{Arc, Mutex};

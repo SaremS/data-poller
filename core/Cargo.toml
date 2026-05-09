@@ -1,0 +1,21 @@
+[package]
+name = "data-poller-core"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+async-trait = { workspace = true }
+datafusion = { workspace = true }
+object_store = { workspace = true }
+reqwest = { workspace = true }
+scraper = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+url = { workspace = true }
+
+[dev-dependencies]
+arrow = { workspace = true }
+axum = { workspace = true }
+parquet = { workspace = true }
+tempfile = { workspace = true }
+tower-http = { workspace = true }

@@ -1,16 +1,18 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
-use arrow::array::{Int32Array, StringArray, StringViewArray};
-use arrow::record_batch::RecordBatch;
+use arrow::{
+    array::{Array, Int32Array, StringArray, StringViewArray},
+    record_batch::RecordBatch,
+};
 use axum::{
     Router,
     routing::{get, get_service},
 };
-use data_poller::ingestion::HtmlListDataFusionIngestor;
-use data_poller::traits::{IngestionError, Ingestor};
+use data_poller_core::ingestion::HtmlListDataFusionIngestor;
+use data_poller_core::traits::{IngestionError, Ingestor};
 use parquet::arrow::arrow_writer::ArrowWriter;
 use tempfile::NamedTempFile;
-use tokio::net::TcpListener;
+use tokio::{net::TcpListener, time::sleep};
 use tower_http::services::ServeFile;
 
 fn create_test_parquet(names: &[&str]) -> NamedTempFile {
@@ -76,6 +78,8 @@ async fn test_ingest_remote_parquet_success() {
     tokio::spawn(async move {
         axum::serve(listener, app).await.unwrap();
     });
+
+    sleep(Duration::from_millis(10)).await;
 
     let ingestor = HtmlListDataFusionIngestor::new(
         "div#target-area span".to_string(),
@@ -143,6 +147,8 @@ async fn test_ingest_invalid_parquet_url() {
     tokio::spawn(async move {
         axum::serve(listener, app).await.unwrap();
     });
+
+    sleep(Duration::from_millis(10)).await;
 
     let ingestor = HtmlListDataFusionIngestor::new(
         "div#target-area span".to_string(),

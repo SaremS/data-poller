@@ -4,9 +4,7 @@ use std::sync::{Arc, Mutex};
 use async_trait::async_trait;
 use datafusion::{dataframe::DataFrame, prelude::*};
 use object_store::{ClientOptions, http::HttpBuilder};
-use reqwest;
 use scraper::{Html, Selector};
-use serde::Deserialize;
 use thiserror::Error;
 use url::Url;
 
@@ -45,7 +43,7 @@ impl HtmlListDataFusionIngestor {
             checkpoint: Arc::new(None.into()),
             target_url: url,
             query: query.to_string(),
-            ingest_from_back: ingest_from_back.unwrap_or_else(|| false),
+            ingest_from_back: ingest_from_back.unwrap_or(false),
         })
     }
 
@@ -160,7 +158,7 @@ impl HtmlExtractor {
     }
 
     pub async fn extract_from_url(&self, url: &Url) -> Result<Vec<String>, HtmlExtractorError> {
-        let response = reqwest::get(&url.to_string()).await.map_err(|e| {
+        let response = reqwest::get(url.as_str()).await.map_err(|e| {
             HtmlExtractorError::UrlLoadError(format!("Failed to load URL: {}", e).into())
         })?;
 
@@ -218,11 +216,7 @@ impl DataFusionLoader {
             .runtime_env()
             .register_object_store(&file_url, Arc::new(http_store));
 
-        context.deregister_table("remote_parquet").map_err(|e| {
-            DataFusionLoaderError::ConnectionError(
-                format!("Failed to reset Parquet registration: {}", e).into(),
-            )
-        })?;
+        let _ = context.deregister_table("remote_parquet");
 
         context
             .register_parquet("remote_parquet", file_url, ParquetReadOptions::default())

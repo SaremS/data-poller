@@ -1,14 +1,13 @@
 use std::borrow::Cow;
 use std::fmt::Debug;
+use std::fs;
+use std::path::Path;
 
 use async_trait::async_trait;
 use datafusion::{
     dataframe::{DataFrame, DataFrameWriteOptions},
     logical_expr::Partitioning,
-    prelude::*,
 };
-use std::fs;
-use std::path::Path;
 use thiserror::Error;
 
 #[derive(Error, Debug)]

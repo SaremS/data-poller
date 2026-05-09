@@ -8,13 +8,11 @@ use axum::{
     Router,
     routing::{get, get_service},
 };
-use data_poller::{
-    ingestion::HtmlListDataFusionIngestor,
-    orchestration::{Orchestrator, PipelineSchedule},
-    storage::FilePathStorer,
-    traits::Pipeline,
+use data_poller_core::{
+    ingestion::HtmlListDataFusionIngestor, storage::FilePathStorer, traits::Pipeline,
     transformation::IdentityTransformer,
 };
+use data_poller_orchestration::orchestration::{Orchestrator, PipelineSchedule};
 use datafusion::prelude::*;
 use parquet::arrow::arrow_writer::ArrowWriter;
 use tempfile::{NamedTempFile, tempdir};

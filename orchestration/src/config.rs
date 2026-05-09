@@ -1,14 +1,15 @@
 use std::borrow::Cow;
 
+use data_poller_core::ingestion::HtmlListDataFusionIngestor;
+use data_poller_core::storage::{ConsoleStorer, FilePathStorer};
+use data_poller_core::traits::{
+    DatasetDto, Ingestor, Pipeline, RunnablePipeline, Storer, Transformer,
+};
+use data_poller_core::transformation::IdentityTransformer;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::ingestion::HtmlListDataFusionIngestor;
-use crate::storage::{ConsoleStorer, FilePathStorer};
-use crate::transformation::IdentityTransformer;
-
 use crate::orchestration::{Orchestrator, PipelineSchedule, ScheduledPipeline};
-use crate::traits::{DatasetDto, Ingestor, Pipeline, RunnablePipeline, Storer, Transformer};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct OrchestratorConfig {
@@ -19,8 +20,8 @@ impl OrchestratorConfig {
     pub fn to_orchestrator(&self) -> Result<Orchestrator, ConfigError> {
         let mut orchestrator = Orchestrator::new();
         for pipeline_config in &self.pipelines {
-            let scheduled_pipeline: ScheduledPipeline = pipeline_config.to_scheduled_pipeline()?;
-            orchestrator.add_scheduled_pipeline(scheduled_pipeline);
+            let scheduled_pipeline = pipeline_config.to_scheduled_pipeline()?;
+            orchestrator.add_scheduled_pipeline(scheduled_pipeline)?;
         }
         Ok(orchestrator)
     }
@@ -89,8 +90,14 @@ pub enum DatasetIngestorConfig {
 
 #[derive(Error, Debug)]
 pub enum ConfigError {
-    #[error("Failed to create ingestor: {0}")]
+    #[error("Failed to create config element: {0}")]
     CreationError(Cow<'static, str>),
+}
+
+impl From<crate::orchestration::OrchestratorError> for ConfigError {
+    fn from(value: crate::orchestration::OrchestratorError) -> Self {
+        Self::CreationError(format!("{}", value).into())
+    }
 }
 
 impl DatasetIngestorConfig {
@@ -156,27 +163,25 @@ impl DatasetStorerConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_orchestrator_config_to_orchestrator() {
         let config = OrchestratorConfig {
-            pipelines: vec![
-                ScheduledPipelineConfig {
-                    name: "Test Pipeline".into(),
-                    pipeline: PipelineConfig::Dataset(DatasetPipelineConfig {
-                        ingestor: DatasetIngestorConfig::HtmlListDataFusion {
-                            tree_path: "tree".into(),
-                            sub_path: "sub".into(),
-                            target_url: "http://example.com".into(),
-                            query: "SELECT *".into(),
-                            ingest_from_back: true,
-                        },
-                        transformer: DatasetTransformerConfig::Identity,
-                        storer: DatasetStorerConfig::Console,
-                    }),
-                    schedule: PipelineSchedule::FixedMsInterval(1000),
-                },
-            ],
+            pipelines: vec![ScheduledPipelineConfig {
+                name: "Test Pipeline".into(),
+                pipeline: PipelineConfig::Dataset(DatasetPipelineConfig {
+                    ingestor: DatasetIngestorConfig::HtmlListDataFusion {
+                        tree_path: "tree".into(),
+                        sub_path: "sub".into(),
+                        target_url: "http://example.com".into(),
+                        query: "SELECT *".into(),
+                        ingest_from_back: true,
+                    },
+                    transformer: DatasetTransformerConfig::Identity,
+                    storer: DatasetStorerConfig::Console,
+                }),
+                schedule: PipelineSchedule::FixedMsInterval(1000),
+            }],
         };
         let orchestrator = config.to_orchestrator();
         assert!(orchestrator.is_ok());
