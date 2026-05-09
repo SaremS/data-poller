@@ -121,7 +121,9 @@ async fn test_orchestrator_ingests_and_stores_remote_parquet_files() {
 
     let pipeline = Pipeline::new(ingestor, transformer, storer);
     let mut orchestrator = Orchestrator::new();
-    orchestrator.add_pipeline(Box::new(pipeline), 50).unwrap();
+    orchestrator
+        .add_pipeline("remote-parquet".to_string(), Box::new(pipeline), 50)
+        .unwrap();
 
     Arc::new(orchestrator).start().await.unwrap();
 
