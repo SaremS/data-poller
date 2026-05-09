@@ -187,19 +187,16 @@ mod tests {
         let yaml = indoc::indoc! {r#"
         pipelines:
           - name: "Test Pipeline"
-            pipeline:
-              !Dataset:
-                ingestor: 
-                  !HtmlListDataFusion
-                    tree_path: "tree"
-                    sub_path: "sub"
-                    target_url: "http://example.com"
-                    query: "SELECT *"
-                    ingest_from_back: true
-                transformer: !Identity
-                storer: !Console
-            schedule: 
-              FixedMsInterval: 1000
+            pipeline: !Dataset
+              ingestor: !HtmlListDataFusion
+                tree_path: "tree"
+                sub_path: "sub"
+                target_url: "http://example.com"
+                query: "SELECT *"
+                ingest_from_back: true
+              transformer: !Identity
+              storer: !Console
+            schedule: !FixedMsInterval 1000
         "#};
         let config: OrchestratorConfig = serde_yaml::from_str(yaml).unwrap();
         assert_eq!(config.pipelines.len(), 1);
