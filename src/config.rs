@@ -156,6 +156,74 @@ impl DatasetStorerConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
+    
+    #[test]
+    fn test_orchestrator_config_to_orchestrator() {
+        let config = OrchestratorConfig {
+            pipelines: vec![
+                ScheduledPipelineConfig {
+                    name: "Test Pipeline".into(),
+                    pipeline: PipelineConfig::Dataset(DatasetPipelineConfig {
+                        ingestor: DatasetIngestorConfig::HtmlListDataFusion {
+                            tree_path: "tree".into(),
+                            sub_path: "sub".into(),
+                            target_url: "http://example.com".into(),
+                            query: "SELECT *".into(),
+                            ingest_from_back: true,
+                        },
+                        transformer: DatasetTransformerConfig::Identity,
+                        storer: DatasetStorerConfig::Console,
+                    }),
+                    schedule: PipelineSchedule::FixedMsInterval(1000),
+                },
+            ],
+        };
+        let orchestrator = config.to_orchestrator();
+        assert!(orchestrator.is_ok());
+    }
+
+    #[test]
+    fn test_orchestrator_config_yaml_deserialization() {
+        let yaml = indoc::indoc! {r#"
+        pipelines:
+          - name: "Test Pipeline"
+            pipeline:
+              Dataset:
+                ingestor: 
+                  !HtmlListDataFusion
+                    tree_path: "tree"
+                    sub_path: "sub"
+                    target_url: "http://example.com"
+                    query: "SELECT *"
+                    ingest_from_back: true
+                transformer: !Identity
+                storer: !Console
+            schedule: 
+              FixedMsInterval: 1000
+        "#};
+        let config: OrchestratorConfig = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(config.pipelines.len(), 1);
+        let pipeline_config = &config.pipelines[0];
+        assert_eq!(pipeline_config.name, "Test Pipeline");
+        assert_eq!(
+            pipeline_config.pipeline,
+            PipelineConfig::Dataset(DatasetPipelineConfig {
+                ingestor: DatasetIngestorConfig::HtmlListDataFusion {
+                    tree_path: "tree".into(),
+                    sub_path: "sub".into(),
+                    target_url: "http://example.com".into(),
+                    query: "SELECT *".into(),
+                    ingest_from_back: true,
+                },
+                transformer: DatasetTransformerConfig::Identity,
+                storer: DatasetStorerConfig::Console,
+            })
+        );
+        assert_eq!(
+            pipeline_config.schedule,
+            PipelineSchedule::FixedMsInterval(1000)
+        );
+    }
 
     #[test]
     fn test_pipeline_config_to_pipeline() {
