@@ -126,7 +126,7 @@ mod tests {
 
     #[test]
     fn test_pipeline_yaml_deserialization() {
-        let yaml = indoc::indoc!{r#"
+        let yaml = indoc::indoc! {r#"
         ingestor: 
             !HtmlListDataFusion
               tree_path: "tree"
