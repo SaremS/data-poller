@@ -1,5 +1,5 @@
-use std::collections::{HashMap, hash_map::Entry};
 use std::borrow::Cow;
+use std::collections::{HashMap, hash_map::Entry};
 use std::sync::Arc;
 
 use thiserror::Error;
@@ -7,10 +7,29 @@ use tokio::time::{Duration, sleep};
 
 use crate::traits::RunnablePipeline;
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum PipelineSchedule {
+    FixedMsInterval(u64),
+}
+
+impl PipelineSchedule {
+    pub fn to_duration(&self) -> Duration {
+        match self {
+            PipelineSchedule::FixedMsInterval(ms) => Duration::from_millis(*ms),
+        }
+    }
+}
+
+impl From<Duration> for PipelineSchedule {
+    fn from(duration: Duration) -> Self {
+        PipelineSchedule::FixedMsInterval(duration.as_millis() as u64)
+    }
+}
+
 struct ScheduledPipeline {
     name: String,
     pipeline: Box<dyn RunnablePipeline>,
-    schedule: Duration,
+    schedule: PipelineSchedule,
 }
 
 #[derive(Error, Debug)]
@@ -23,9 +42,9 @@ impl ScheduledPipeline {
     pub fn new(
         name: String,
         pipeline: Box<dyn RunnablePipeline>,
-        schedule_millis: u64,
+        schedule: PipelineSchedule,
     ) -> Result<Self, ScheduledPipelineError> {
-        if schedule_millis == 0 {
+        if schedule.to_duration().is_zero() {
             return Err(ScheduledPipelineError::CreationError(
                 "Schedule must be greater than zero".into(),
             ));
@@ -33,7 +52,7 @@ impl ScheduledPipeline {
         Ok(Self {
             name,
             pipeline,
-            schedule: Duration::from_millis(schedule_millis),
+            schedule,
         })
     }
 }
@@ -64,18 +83,18 @@ impl Orchestrator {
         &mut self,
         name: String,
         pipeline: Box<dyn RunnablePipeline>,
-        schedule_millis: u64,
+        schedule: PipelineSchedule,
     ) -> Result<(), OrchestratorError> {
-        let scheduled_pipeline = Arc::new(ScheduledPipeline::new(name, pipeline, schedule_millis)?);
+        let scheduled_pipeline = Arc::new(ScheduledPipeline::new(name, pipeline, schedule)?);
 
         match self.pipelines.entry(scheduled_pipeline.name.clone()) {
             Entry::Vacant(entry) => {
                 entry.insert(scheduled_pipeline);
                 Ok(())
             }
-            Entry::Occupied(_) => {
-                Err(OrchestratorError::DuplicatePipelineName(scheduled_pipeline.name.clone()))
-            }
+            Entry::Occupied(_) => Err(OrchestratorError::DuplicatePipelineName(
+                scheduled_pipeline.name.clone(),
+            )),
         }
     }
 
@@ -87,7 +106,7 @@ impl Orchestrator {
                     if let Err(e) = &pipe.pipeline.run().await {
                         eprintln!("Pipeline error: {}", e);
                     }
-                    sleep(pipe.schedule).await;
+                    sleep(pipe.schedule.to_duration()).await;
                 }
             });
         }
@@ -157,7 +176,11 @@ mod tests {
         let pipeline = Pipeline::new(ingestor, transformer, storer);
         let mut orchestrator = Orchestrator::new();
         orchestrator
-            .add_pipeline("test-pipeline".to_string(), Box::new(pipeline), 100)
+            .add_pipeline(
+                "test-pipeline".to_string(),
+                Box::new(pipeline),
+                PipelineSchedule::FixedMsInterval(100),
+            )
             .unwrap();
 
         let orchestrator_arc = Arc::new(orchestrator);
@@ -177,7 +200,7 @@ mod tests {
             .add_pipeline(
                 "duplicate-name".to_string(),
                 Box::new(MockRunnablePipeline),
-                100,
+                PipelineSchedule::FixedMsInterval(100),
             )
             .unwrap();
 
@@ -185,7 +208,7 @@ mod tests {
             .add_pipeline(
                 "duplicate-name".to_string(),
                 Box::new(MockRunnablePipeline),
-                100,
+                PipelineSchedule::FixedMsInterval(100),
             )
             .unwrap_err();
 

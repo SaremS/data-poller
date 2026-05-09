@@ -9,8 +9,11 @@ use axum::{
     routing::{get, get_service},
 };
 use data_poller::{
-    ingestion::HtmlListDataFusionIngestor, orchestration::Orchestrator, storage::FilePathStorer,
-    traits::Pipeline, transformation::IdentityTransformer,
+    ingestion::HtmlListDataFusionIngestor,
+    orchestration::{Orchestrator, PipelineSchedule},
+    storage::FilePathStorer,
+    traits::Pipeline,
+    transformation::IdentityTransformer,
 };
 use datafusion::prelude::*;
 use parquet::arrow::arrow_writer::ArrowWriter;
@@ -122,7 +125,11 @@ async fn test_orchestrator_ingests_and_stores_remote_parquet_files() {
     let pipeline = Pipeline::new(ingestor, transformer, storer);
     let mut orchestrator = Orchestrator::new();
     orchestrator
-        .add_pipeline("remote-parquet".to_string(), Box::new(pipeline), 50)
+        .add_pipeline(
+            "remote-parquet".to_string(),
+            Box::new(pipeline),
+            PipelineSchedule::FixedMsInterval(50),
+        )
         .unwrap();
 
     Arc::new(orchestrator).start().await.unwrap();
