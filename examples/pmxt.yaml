@@ -8,9 +8,8 @@ pipelines:
         tree_path: "pre > span"
         sub_path: "a"
         target_url: "https://archive.pmxt.dev/Polymarket/v2"
-        query: "SELECT * FROM remote_parquet LIMIT 5"
+        query: "SELECT market, price, size FROM remote_parquet LIMIT 5"
         ingest_from_back: true
       transformer: !Identity
-      storer: !FilePath
-        file_path: "/tmp/"  
-    schedule: !FixedMsInterval 2000
+      storer: !Console
+    schedule: !FixedMsInterval 500

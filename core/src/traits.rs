@@ -5,6 +5,7 @@ use std::path::Path;
 
 use async_trait::async_trait;
 use datafusion::{
+    arrow::util::pretty::pretty_format_batches,
     dataframe::{DataFrame, DataFrameWriteOptions},
     logical_expr::Partitioning,
 };
@@ -49,6 +50,29 @@ impl DatasetDto {
         match self {
             DatasetDto::DataFrame(dataset) => Some(dataset.get_data()),
             DatasetDto::None => None,
+        }
+    }
+}
+
+#[async_trait]
+pub trait IntoStringAsync {
+    async fn into_string_async(self) -> String;
+}
+
+#[async_trait]
+impl IntoStringAsync for DatasetDto {
+    async fn into_string_async(self) -> String {
+        let df_option = self.get_as_dataframe();
+        match df_option {
+            Some(df) => {
+                let batches = df.collect().await.unwrap_or_else(|_| vec![]);
+                let table_string = pretty_format_batches(&batches)
+                    .map(|displayable| displayable.to_string())
+                    .unwrap_or_else(|_| "Failed to format table".to_string())
+                    .to_string();
+                return table_string;
+            }
+            None => "No DataFrame available".to_string(),
         }
     }
 }

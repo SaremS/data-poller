@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use crate::traits::{FileStorer, StorageError, Storer};
+use crate::traits::{FileStorer, IntoStringAsync, StorageError, Storer};
 
 pub struct ConsoleStorer;
 
@@ -13,10 +13,10 @@ impl ConsoleStorer {
 #[async_trait]
 impl<T> Storer<T> for ConsoleStorer
 where
-    T: Into<String> + Send + 'static,
+    T: IntoStringAsync + Send + 'static,
 {
     async fn store(&self, input: T) -> Result<(), StorageError> {
-        println!("{}\n", input.into());
+        println!("{}\n", input.into_string_async().await);
         Ok(())
     }
 }
