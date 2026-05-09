@@ -188,7 +188,7 @@ mod tests {
         pipelines:
           - name: "Test Pipeline"
             pipeline:
-              Dataset:
+              !Dataset:
                 ingestor: 
                   !HtmlListDataFusion
                     tree_path: "tree"
